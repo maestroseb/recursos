@@ -407,8 +407,8 @@ function exportarDiccionariosJSON() {
 const PROP_CARPETA_PROV = 'CARPETA_CSV_PROV';
 const PROP_CARPETA_DEF  = 'CARPETA_CSV_DEF';
 
-const IMPORT_CHARSET = 'ISO-8859-1';   // codificación del CSV (windows-1252)
-const IMPORT_SEP     = ';';            // separador del CSV del extractor
+const IMPORT_CHARSET = 'UTF-8';   // el CSV del extractor se genera en UTF-8 (con BOM)
+const IMPORT_SEP     = ';';       // separador del CSV del extractor
 
 // ---------- Configurar carpetas ----------
 function elegirCarpetaProv() { _pedirCarpeta(PROP_CARPETA_PROV, 'provisional'); }
@@ -453,9 +453,8 @@ function _importarCarpeta(prop, sufijo) {
     const file = it.next();
     if (!/\.csv$/i.test(file.getName())) continue;
 
-    let texto;
-    try { texto = file.getBlob().getDataAsString(IMPORT_CHARSET); }
-    catch (e) { texto = file.getBlob().getDataAsString('UTF-8'); }
+    let texto = file.getBlob().getDataAsString(IMPORT_CHARSET);
+    if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1);   // quita el BOM inicial
 
     const tabla = Utilities.parseCsv(texto, IMPORT_SEP);
     if (!tabla || tabla.length < 2) continue;   // sin filas de datos
