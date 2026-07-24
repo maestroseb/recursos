@@ -224,7 +224,10 @@
         d.tiempo_servicio,d.anio_ingreso,d.nota,d.centro_codigo,d.prov,d.centro_localidad]
         .map(s => `"${String(s).replace(/"/g,'""')}"`).join(';'));
     });
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=iso-8859-1' });
+    // El constructor Blob SIEMPRE serializa el texto en UTF-8, así que exportamos
+    // como UTF-8 con BOM para que ñ y tildes lleguen bien tanto al
+    // importador de la hoja como a Excel al abrir el CSV directamente.
+    const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `${nombreArchivo}.csv`;
