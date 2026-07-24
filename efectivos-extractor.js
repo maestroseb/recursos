@@ -160,9 +160,11 @@
     if (m) { nif = m[1]; nombre = m[2]; }
     return {
       especialidad: especialidadCode, orden, nif, nombre, colectivo,
+      motivo: '',                       // (F) no se extrae este año
       tiempo_servicio: '', anio_ingreso: '', nota: '',
       centro_codigo: cells[3]?.textContent?.trim() || '',
-      centro_nombre: '', centro_localidad: '', centro_provincia: ''
+      prov: '',                         // (K) provincia
+      centro_localidad: ''              // (L) "Nombre del centro, Localidad"
     };
   }
 
@@ -182,20 +184,22 @@
       const doc = await fetchDocGET(href);   // ya reintenta internamente
       const colectivo = getField(doc, 'Colectivo:')
         .replace(/\(\s*/, '(').replace(/\)\s*/, ') ').replace(/\s+/g, ' ').trim();
+      // centro = [código, nombre, localidad, provincia]
       const centro = getCentroParts(doc);
+      const centroYLocalidad = [centro[1], centro[2]].filter(Boolean).join(', ');
       return {
         especialidad: basicData.especialidad,
         orden: basicData.orden,
         nif: getField(doc, 'N.I.F.:') || basicData.nif,
         nombre: getField(doc, 'Apellidos y nombre:') || basicData.nombre,
         colectivo: colectivo || basicData.colectivo,
+        motivo: '',                                   // (F) no se extrae este año
         tiempo_servicio: getTiempoServicio(doc),
         anio_ingreso: getAnio(doc),
         nota: getField(doc, 'Nota ingreso cuerpo:'),
-        centro_codigo: centro[0] || basicData.centro_codigo,
-        centro_nombre: centro[1],
-        centro_localidad: centro[2],
-        centro_provincia: centro[3]
+        centro_codigo: centro[0] || basicData.centro_codigo,   // (J)
+        prov: centro[3],                              // (K) provincia (última línea)
+        centro_localidad: centroYLocalidad            // (L) "Nombre, Localidad"
       };
     } catch (e) {
       // Tras agotar los reintentos, no perdemos la fila: devolvemos los datos básicos.
@@ -210,11 +214,14 @@
       nombreArchivo = `${esp.codigo}_${esp.nombre}`
         .replace(/[<>:"/\\|?*]/g, '_').replace(/\s+/g, '_');
     }
-    const headers = ['Especialidad','Orden','NIF','Nombre','Colectivo','Tiempo servicio','Año ingreso','Nota','Centro código','Centro nombre','Centro localidad','Centro provincia'];
+    // Columnas A–L del pipeline de la hoja de efectivos (espejo del CGT):
+    // A Especialidad B Orden C NIF D Nombre E Colectivo F Motivo
+    // G Tiempo servicio H Año ingreso I Nota J Centro código K PROV L CentroyLocalidad
+    const headers = ['Especialidad','Orden','NIF','Nombre','Colectivo','Motivo','Tiempo servicio','Año ingreso','Nota','Centro código','PROV','CentroyLocalidad'];
     const rows = [headers.join(';')];
     data.forEach(d => {
-      rows.push([d.especialidad,d.orden,d.nif,d.nombre,d.colectivo,d.tiempo_servicio,
-        d.anio_ingreso,d.nota,d.centro_codigo,d.centro_nombre,d.centro_localidad,d.centro_provincia]
+      rows.push([d.especialidad,d.orden,d.nif,d.nombre,d.colectivo,d.motivo,
+        d.tiempo_servicio,d.anio_ingreso,d.nota,d.centro_codigo,d.prov,d.centro_localidad]
         .map(s => `"${String(s).replace(/"/g,'""')}"`).join(';'));
     });
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=iso-8859-1' });
