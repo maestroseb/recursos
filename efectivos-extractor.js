@@ -3,8 +3,8 @@
  * Novedades v2.0:
  *   - Reintentos automáticos con backoff y timeout (no se bloquea).
  *   - Pausa/Reanudación: continúa por donde se quedó.
- *   - Nueva estructura del Centro (5 líneas): la provincia es la última línea
- *     y se descarta la línea sobrante (error de la Consejería en el 2026). */
+ *   - Bloque Centro robusto ante 4 o 5 líneas: la provincia es SIEMPRE la última
+ *     línea y la localidad la 3ª (la Junta pasó de 4 a 5 líneas y volvió a 4). */
 (function() {
   'use strict';
 
@@ -160,11 +160,10 @@
     if (m) { nif = m[1]; nombre = m[2]; }
     return {
       especialidad: especialidadCode, orden, nif, nombre, colectivo,
-      motivo: '',                       // (F) no se extrae este año
       tiempo_servicio: '', anio_ingreso: '', nota: '',
       centro_codigo: cells[3]?.textContent?.trim() || '',
-      prov: '',                         // (K) provincia
-      centro_localidad: ''              // (L) "Nombre del centro, Localidad"
+      prov: '',                         // (J) provincia
+      centro_localidad: ''              // (K) "Nombre del centro, Localidad"
     };
   }
 
@@ -193,13 +192,12 @@
         nif: getField(doc, 'N.I.F.:') || basicData.nif,
         nombre: getField(doc, 'Apellidos y nombre:') || basicData.nombre,
         colectivo: colectivo || basicData.colectivo,
-        motivo: '',                                   // (F) no se extrae este año
         tiempo_servicio: getTiempoServicio(doc),
         anio_ingreso: getAnio(doc),
         nota: getField(doc, 'Nota ingreso cuerpo:'),
-        centro_codigo: centro[0] || basicData.centro_codigo,   // (J)
-        prov: centro[3],                              // (K) provincia (última línea)
-        centro_localidad: centroYLocalidad            // (L) "Nombre, Localidad"
+        centro_codigo: centro[0] || basicData.centro_codigo,   // (I)
+        prov: centro[3],                              // (J) provincia (última línea)
+        centro_localidad: centroYLocalidad            // (K) "Nombre, Localidad"
       };
     } catch (e) {
       // Tras agotar los reintentos, no perdemos la fila: devolvemos los datos básicos.
@@ -214,13 +212,13 @@
       nombreArchivo = `${esp.codigo}_${esp.nombre}`
         .replace(/[<>:"/\\|?*]/g, '_').replace(/\s+/g, '_');
     }
-    // Columnas A–L del pipeline de la hoja de efectivos (espejo del CGT):
-    // A Especialidad B Orden C NIF D Nombre E Colectivo F Motivo
-    // G Tiempo servicio H Año ingreso I Nota J Centro código K PROV L CentroyLocalidad
-    const headers = ['Especialidad','Orden','NIF','Nombre','Colectivo','Motivo','Tiempo servicio','Año ingreso','Nota','Centro código','PROV','CentroyLocalidad'];
+    // Columnas A–K del pipeline de la hoja de efectivos (espejo del CGT):
+    // A Especialidad B Orden C NIF D Nombre E Colectivo
+    // F Tiempo servicio G Año ingreso H Nota I Centro código J PROV K CentroyLocalidad
+    const headers = ['Especialidad','Orden','NIF','Nombre','Colectivo','Tiempo servicio','Año ingreso','Nota','Centro código','PROV','CentroyLocalidad'];
     const rows = [headers.join(';')];
     data.forEach(d => {
-      rows.push([d.especialidad,d.orden,d.nif,d.nombre,d.colectivo,d.motivo,
+      rows.push([d.especialidad,d.orden,d.nif,d.nombre,d.colectivo,
         d.tiempo_servicio,d.anio_ingreso,d.nota,d.centro_codigo,d.prov,d.centro_localidad]
         .map(s => `"${String(s).replace(/"/g,'""')}"`).join(';'));
     });
