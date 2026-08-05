@@ -15,10 +15,10 @@
 //    · Quedan SIEMPRE fuera: Especialidades, Centros, BÚSQUEDA y los destinos.
 //    · Exportar genera efectivos_AAAA.json con { datos, datosDef, hayDef }.
 //
-//  Columnas esperadas en cada pestaña (fila 1 = cabecera), A–K:
-//    A Especialidad (código)   B Orden          C NIF          D Nombre
-//    E Colectivo               F Tiempo_servicio G Año_ingreso H Nota
-//    I Centro_código           J PROV            K CentroyLocalidad
+//  Columnas esperadas en cada pestaña (fila 1 = cabecera), A–L:
+//    A Especialidad (código)   B Orden           C NIF            D Nombre
+//    E Colectivo               F Tiempo_servicio G Año_ingreso    H Nota
+//    I Centro_código           J Centro_nombre   K Centro_localidad L Centro_provincia
 //
 //  Los códigos de especialidad y centro se interpretan igual que en
 //  diccionarios.json (el mismo fichero que el Concurso de Traslados).
@@ -87,9 +87,9 @@ function consolidarDef() {
   }, EFECTIVOS_DEST_DEF);
 }
 
-// Nº de columnas relevantes (A–K). Solo se leen/escriben estas, para no
+// Nº de columnas relevantes (A–L). Solo se leen/escriben estas, para no
 // arrastrar columnas auxiliares de las hojas de origen y acelerar el proceso.
-const EFECTIVOS_NUM_COLS = 11;
+const EFECTIVOS_NUM_COLS = 12;
 
 // Fusiona en `destino` las pestañas que cumplan `incluir(nombre)` (y no estén excluidas).
 // Mantiene una sola fila de cabecera (la de la primera hoja) y omite filas vacías.
@@ -187,8 +187,11 @@ function _leerMerged(nombreHoja) {
       anioIngreso: String(f[6] || '').trim(),       // G Año_ingreso
       nota: String(f[7] || '').trim(),              // H Nota
       centro: String(f[8] || '').trim(),            // I Centro_código
-      prov: String(f[9] || '').trim(),              // J PROV
-      centroLoc: String(f[10] || '').trim(),        // K CentroyLocalidad
+      // El centro ahora viene en columnas separadas (J nombre, K localidad,
+      // L provincia). Mantenemos el JSON igual que antes: prov = provincia y
+      // centroLoc = "Nombre, Localidad" (la web resuelve el resto por el código).
+      prov: String(f[11] || '').trim(),             // L Centro_provincia
+      centroLoc: [String(f[9] || '').trim(), String(f[10] || '').trim()].filter(String).join(', '), // J + K
       _idx: i
     });
   }
@@ -400,7 +403,7 @@ function exportarDiccionariosJSON() {
 //     · Carpeta definitiva    →  pestañas "<código>_Def"
 //  Reimportar reprocesa TODA la carpeta (idempotente): cada CSV sobrescribe
 //  su pestaña, así puedes ir soltando archivos poco a poco y reimportar.
-//  El CSV ya viene en formato A–K (11 columnas), listo para consolidar.
+//  El CSV ya viene en formato A–L (12 columnas), listo para consolidar.
 // ============================================================
 
 // Claves donde se guardan los IDs de las carpetas de Drive (por hoja).

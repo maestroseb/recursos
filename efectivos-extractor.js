@@ -162,8 +162,7 @@
       especialidad: especialidadCode, orden, nif, nombre, colectivo,
       tiempo_servicio: '', anio_ingreso: '', nota: '',
       centro_codigo: cells[3]?.textContent?.trim() || '',
-      prov: '',                         // (J) provincia
-      centro_localidad: ''              // (K) "Nombre del centro, Localidad"
+      centro_nombre: '', centro_localidad: '', centro_provincia: ''
     };
   }
 
@@ -185,7 +184,6 @@
         .replace(/\(\s*/, '(').replace(/\)\s*/, ') ').replace(/\s+/g, ' ').trim();
       // centro = [código, nombre, localidad, provincia]
       const centro = getCentroParts(doc);
-      const centroYLocalidad = [centro[1], centro[2]].filter(Boolean).join(', ');
       return {
         especialidad: basicData.especialidad,
         orden: basicData.orden,
@@ -196,8 +194,9 @@
         anio_ingreso: getAnio(doc),
         nota: getField(doc, 'Nota ingreso cuerpo:'),
         centro_codigo: centro[0] || basicData.centro_codigo,   // (I)
-        prov: centro[3],                              // (J) provincia (última línea)
-        centro_localidad: centroYLocalidad            // (K) "Nombre, Localidad"
+        centro_nombre: centro[1],                     // (J)
+        centro_localidad: centro[2],                  // (K)
+        centro_provincia: centro[3]                   // (L) provincia (última línea)
       };
     } catch (e) {
       // Tras agotar los reintentos, no perdemos la fila: devolvemos los datos básicos.
@@ -212,14 +211,15 @@
       nombreArchivo = `${esp.codigo}_${esp.nombre}`
         .replace(/[<>:"/\\|?*]/g, '_').replace(/\s+/g, '_');
     }
-    // Columnas A–K del pipeline de la hoja de efectivos (espejo del CGT):
-    // A Especialidad B Orden C NIF D Nombre E Colectivo
-    // F Tiempo servicio G Año ingreso H Nota I Centro código J PROV K CentroyLocalidad
-    const headers = ['Especialidad','Orden','NIF','Nombre','Colectivo','Tiempo servicio','Año ingreso','Nota','Centro código','PROV','CentroyLocalidad'];
+    // Columnas A–L (12) del pipeline de la hoja de efectivos, con el centro en
+    // columnas SEPARADAS:
+    // A Especialidad B Orden C NIF D Nombre E Colectivo F Tiempo_servicio
+    // G Año_ingreso H Nota I Centro_código J Centro_nombre K Centro_localidad L Centro_provincia
+    const headers = ['Especialidad','Orden','NIF','Nombre','Colectivo','Tiempo_servicio','Año_ingreso','Nota','Centro_código','Centro_nombre','Centro_localidad','Centro_provincia'];
     const rows = [headers.join(';')];
     data.forEach(d => {
       rows.push([d.especialidad,d.orden,d.nif,d.nombre,d.colectivo,
-        d.tiempo_servicio,d.anio_ingreso,d.nota,d.centro_codigo,d.prov,d.centro_localidad]
+        d.tiempo_servicio,d.anio_ingreso,d.nota,d.centro_codigo,d.centro_nombre,d.centro_localidad,d.centro_provincia]
         .map(s => `"${String(s).replace(/"/g,'""')}"`).join(';'));
     });
     // El constructor Blob SIEMPRE serializa el texto en UTF-8, así que exportamos
